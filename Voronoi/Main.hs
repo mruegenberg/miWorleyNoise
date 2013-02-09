@@ -14,7 +14,7 @@ import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Maybe(isJust,fromJust)
 
--- Code based on Steve Worley's paper "A Cellular Texture Basis Function", and some material from Advanced Renderman.
+-- Code based on Steve Worley's paper "A Cellular Texture Basis Function", and some material from Advanced Renderman (particularly the thresholding, chapter 10).
 
 -- for memoization, to reduce need for random number generation. 
 data Cache = Cache { cacheCube :: Cube, cacheVals :: Map Cube [Point] }
@@ -39,12 +39,6 @@ linearDistance p1 p2 = sqrt (linearSqDistance p1 p2)
 
 linearSqDistance :: Point -> Point -> Double
 linearSqDistance p1 p2 = fromIntegral $ sum $ zipWith (\c1 c2 -> (c1 - c2)^2) p1 p2
-
-quadraticDistance :: Point -> Point -> Double
-quadraticDistance p1 p2 = f diffs
-   where diffs = zipWith (\c1 c2 -> fromIntegral (c1 - c2)) p1 p2
-         f [] = 0
-         f l@(u:vs) = sum (map (\v -> u * v) l) + f vs
         
 manhattanDistance :: Point -> Point -> Double
 manhattanDistance p1 p2 = sum $ map (abs . fromIntegral) $ zipWith (-) p1 p2
@@ -54,13 +48,10 @@ minkowskiDistance p p1 p2 = (sum (map ((** p) . abs) diffs))**(1/p)
   where diffs = zipWith (\c1 c2 -> fromIntegral (c1 - c2)) p1 p2
         
 distance = linearDistance
-distScale = 30
+distScale = 35
 
 -- distance = linearSqDistance
 -- distScale = 800
-            
--- distance = quadraticDistance
--- distScale = 700 -- 15 for linearDistance --  ((fromIntegral cubeDist) / 2)^2
 
 -- distance = manhattanDistance
 -- distScale = 40
@@ -169,39 +160,54 @@ scalingFunction x = 2 * (1 / (1 + exp ((-1) * (3*x))) - 0.5)
 
 -- alternative scaling functions
 -- scalingFunction x = (3*x) / (1+(3*x))
+
+data Val = Val Double
+         | Gap Double
+           
+value :: Val -> Double
+value (Val d) = d
+value (Gap d) = d
     
 -- compute the value (between 0 and 1) for the given point. If the point is between two cells, returns the negative value
-valForPx :: Cache -> Point -> (Double, Cache)
+valForPx :: Cache -> Point -> (Val, Cache)
 valForPx cache pt = val `seq` (val, cache')
   where
+    -- (p1,f1'),(p2,f2') and so on are the 4 closest points to `pt` and the distances to them
+    -- 
     (((p1,f1'),(p2,f2'),(p3,f3'),(p4,f4')),cache') = distances cache pt
-    scaleFactor = (distance p1 p2) / (distance pt p1 + distance pt p2)
+    p1p2Dist    = distance p1 p2
+    scaleFactor = p1p2Dist / (distance pt p1 + distance pt p2)
     scaledDist = scalingFunction dist
     [f1,f2,f3,f4] = map (/ distScale) [f1',f2',f3',f4']
+    -- Various ways to compute the distance are possible.
+    -- All of those listed here result in different more or less interesting effects
     -- dist = f1
-    -- dist = (2 * f1 + f2) / 3
+    dist = (2 * f1 + f2) / 3
     -- dist = (0.5 * f1 + 0.25 * f2 + f3 / 4) --  + f4 / 12)
     -- dist = (0.5 * f1 + 0.25 * f2 + f3 / 6 + f4 / 12)
     -- dist = f2 - f1 
-    dist = (2 * f3 - f2 - f1) / 2
-    val  = if 2 * scaleFactor > f2' - f1' then (-1) * scaledDist else scaledDist
+    -- dist = (2 * f3 - f2 - f1) / 2
+    -- The point is between two cells if f2 and f1 are approximately equal.
+    -- Simple thresholding of f2 - f1 gives bad results, since the random points are not evenly spaced.
+    -- Using the scaleFactor defined above normalizes the point distribution and hence gives us the desired result,
+    -- i.e gaps with even width.
+    -- Note: there are still some artefacts if p1p2Dist, f1' and f2' are all very small.
+    tScaleF = distScale / 15
+    val  = if tScaleF * scaleFactor >= f2' - f1'  then Gap scaledDist else Val scaledDist
 
 -- compute the color for a give point
 colorForPx :: VoronoiParams -> Cache -> Point -> ([Word8], Cache)
 colorForPx params cache pt = case (valForPx cache pt, color3 params) of
-  ((val,cache'), Just c3) | val < 0.0 -> (c3,cache')
-  ((val,cache'), _) -> (greyToColor (color1 params) (color2 params) (abs val), cache')
-  
-  where
-    (val,cache') = valForPx cache pt
+  ((Gap val,cache'), Just c3) -> (c3,cache')
+  ((val,cache'), _)           -> (greyToColor (color1 params) (color2 params) (value val), cache')
 
 -- size of the image to be generated
 width = 512
 height = 512
     
 main = do
-  -- let params = VoronoiParams [243,240,230,255] [0,40,80,255] [130,25,35,255]
-  let params = VoronoiParams [255,255,255,255] [0,0,0,255] Nothing -- grayscale
+  let params = VoronoiParams [243,240,230,255] [0,40,80,255] (Just [130,25,35,255])
+  -- let params = VoronoiParams [255,255,255,255] [0,0,0,255] Nothing -- grayscale
   let pixels = [[x,y] | x <- [1..width], y <- [1..height]]
   let (rgbVals,_) = foldl' (\(img,cache) px -> case colorForPx params cache px of (c,cache') -> (c ++ img, cache')) ([],Cache emptyCube Map.empty) pixels
   let rgba = BS.pack rgbVals
