@@ -1,0 +1,8 @@
+To build and install the shader, do, in order:
+make clean // only needed if there are existing .dylib and .o files
+make all
+sudo make install
+
+This will build the shader, and install it in the Maya directory. Then, a new node named texture_worleynoise should be available the next time you start Maya.
+
+If you are not on OS X or Maya is in an unusual place, put the right path to Maya in the Makefile. If you encounter any other errors, also have a look at the Makefile. It should be pretty self-explanatory.
