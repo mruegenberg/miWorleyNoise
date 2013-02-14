@@ -22,6 +22,7 @@ OBJS = texture_worleynoise.o
 SRCS = texture_worleynoise.c
 LIBFILE = worleynoise.dylib
 MIFILE = worleynoise.mi
+AETEMPLATEFILE = AEtexture_worleynoiseTemplate.mel
 
 all: dylib 
 
@@ -38,3 +39,4 @@ clean:
 install:	
 	cp $(LIBFILE) $(MAYA_DIR)/mentalray/shaders
 	cp $(MIFILE) $(MAYA_DIR)/mentalray/shaders/include
+	cp $(AETEMPLATEFILE) $(MAYA_DIR)/mentalray/scripts/AETemplates

@@ -1,0 +1,71 @@
+global proc AEtexture_worleynoise_distance_measure( string $attrName )
+{
+    setUITemplate -pst attributeEditorTemplate;
+    
+    rowColumnLayout -nc 1 -columnWidth 1 300;
+    
+    attrEnumOptionMenuGrp -l "Distance Measure:" -at $attrName
+                               -ei 0 "Linear"
+                               -ei 1 "Linear Squared"
+                               -ei 2 "Manhattan"
+                               DistMeasuresGrp;
+     setUITemplate -ppt;
+}
+
+global proc AEtexture_worleynoise_distance_mode( string $attrName )
+{
+    setUITemplate -pst attributeEditorTemplate;
+    
+    rowColumnLayout -nc 1 -columnWidth 1 300;
+    
+    attrEnumOptionMenuGrp -l "Distance Mode:" -at $attrName
+                               -ei 0 "f1"
+                               -ei 1 "f2 - f1"
+                               -ei 2 "(2 f1 + f2) / 3"
+                               -ei 3 "(2 f3 - f2 - f1) / 2"
+                               -ei 4 "f1/2 + f2/3 + f3/6"
+                               DistModesGrp;
+     setUITemplate -ppt;
+}
+
+global proc AEtexture_worleynoise_replace_measure( string $attrName )
+{
+    attrEnumOptionMenuGrp -e -at $attrName DistMeasuresGrp;
+}
+
+global proc AEtexture_worleynoise_replace_mode( string $attrName )
+{
+    attrEnumOptionMenuGrp -e -at $attrName DistModesGrp;
+}
+
+
+
+
+
+
+global proc AEtexture_worleynoiseTemplate( string $nodeName )
+{
+    editorTemplate -beginScrollLayout;
+ 
+    editorTemplate -beginLayout "Worley Noise" -collapse 0;
+        editorTemplate -label "Inner Color" -addControl "inner";
+        editorTemplate -label "Outer Color" -addControl "outer";
+        editorTemplate -label "Gap Color" -addControl "gap";
+
+		editorTemplate -addSeparator;
+ 
+		editorTemplate -callCustom "AEtexture_worleynoise_distance_measure" "AEtexture_worleynoise_replace_measure" "distance_measure";
+		editorTemplate -callCustom "AEtexture_worleynoise_distance_mode" "AEtexture_worleynoise_replace_mode" "distance_mode";
+		
+		editorTemplate -addSeparator;
+
+        editorTemplate -label "Scale" -addControl "scale";
+        editorTemplate -label "Gap size" -addControl "gap_size";
+ 
+    editorTemplate -endLayout;
+ 
+    AEdependNodeTemplate $nodeName;
+ 
+    editorTemplate -addExtraControls;
+    editorTemplate -endScrollLayout;
+}
