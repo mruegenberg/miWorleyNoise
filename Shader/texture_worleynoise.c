@@ -11,15 +11,15 @@
 
 /************* Helpers *************/
 
-#define mi_eval_vector2d(p)	((miVector2d  *)mi_eval(state, (p)))
+#define mi_eval_vector2d(p) ((miVector2d  *)mi_eval(state, (p)))
 
-#define mi_vector_abs(r)	((r)->x = fabs((r)->x),\
-                           (r)->y = fabs((r)->y),\
-                           (r)->z = fabs((r)->z))
+#define mi_vector_abs(r) ((r)->x = fabs((r)->x),\
+                          (r)->y = fabs((r)->y),\
+                          (r)->z = fabs((r)->z))
                            
-#define mi_vector_pow(r,p)	((r)->x = powf((r)->x,p),\
-                             (r)->y = powf((r)->y,p),\
-                             (r)->z = powf((r)->z,p))
+#define mi_vector_pow(r,p) ((r)->x = powf((r)->x,p),\
+                            (r)->y = powf((r)->y,p),\
+                            (r)->z = powf((r)->z,p))
 
 
 /************* Hashing *************/
@@ -42,20 +42,7 @@ unsigned long hash2(long int u, long int v) {
   
   hash += (hash << 5); hash = hash ^ u; // (hash * 33) ^ u
   hash += (hash << 5); hash = hash ^ v; // (hash * 33) ^ v
-  static unsigned long int val = 0;
-  static unsigned long int val1 = 1;
   
-  if(hash == val && hash != val1) {
-    FILE *fin = fopen ("/Users/mruegenberg/Downloads/y/test", "a");
-    fprintf(fin, "val: %lu %lu %lu\n", hash, u, v);
-    fflush(fin);
-    fclose(fin);
-    val1 = val;
-    val = 5;
-  }
-  else {
-    val = hash;
-  }
   return hash;
 }
 
@@ -160,10 +147,10 @@ miScalar distance(dist_measure distance_measure, miVector2d *v1, miVector2d *v2)
 
 // has to fit the .mi file
 typedef struct {
-	miColor		inner;
-	miColor		outer;
-	miColor		gap;
-	miInteger	distance_measure;
+  miColor         inner;
+  miColor         outer;
+  miColor         gap;
+  miInteger       distance_measure;
   miInteger distance_mode;
   miScalar scale;
   miScalar gap_size;
@@ -180,19 +167,19 @@ typedef struct {
 DLLEXPORT int texture_worleynoise_version(void) {return(1);}
 
 DLLEXPORT miBoolean texture_worleynoise_init(
-	miState *state,
-	texture_worleynoise_t *param,
-	miBoolean *init_req)
+    miState *state,
+    texture_worleynoise_t *param,
+    miBoolean *init_req)
 {
   worley_context **contextp;
   worley_context *context;
   
-	if (!param) {
-		/* shader init */
-		*init_req = miTRUE; /* do instance inits */
-	} else { /* shader instance init */
-	  // set up context
-	  
+  if (!param) {
+    /* shader init */
+    *init_req = miTRUE; /* do instance inits */
+  } else { /* shader instance init */
+    // set up context
+    
     mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
     context = *contextp = (worley_context*)mi_mem_allocate( sizeof(worley_context) );
     
@@ -207,38 +194,38 @@ DLLEXPORT miBoolean texture_worleynoise_init(
     {
       context->cache_initialized = 0;
     } // set cacheCube to be an invalid cube, so that the first cache hit fails
-	}
-	return(miTRUE);
+  }
+  return(miTRUE);
 }
 
 DLLEXPORT miBoolean texture_worleynoise_exit(
-	miState *state,
-	texture_worleynoise_t *param)
+    miState *state,
+    texture_worleynoise_t *param)
 {
-	if (param) { /* shader instance exit */
+  if (param) { /* shader instance exit */
     worley_context ** contextp;
     mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
     mi_mem_release(*contextp);
     *contextp = 0;
-	} else {
-		/* shader exit */
-	}
-	return(miTRUE);
+  } else {
+    /* shader exit */
+  }
+  return(miTRUE);
 }
 
 miScalar worleynoise_val(miState *state,texture_worleynoise_t *param);
 void grey_to_color(miScalar val, miColor *color1, miColor *color2, miColor *result);
 DLLEXPORT miBoolean texture_worleynoise(
-	miColor *result,
-	miState *state,
-	texture_worleynoise_t *param)
+    miColor *result,
+    miState *state,
+    texture_worleynoise_t *param)
 {
-	/*
-	 * get parameter values. It is inefficient to do this all at the beginning of
-	 * the code. Move the assignments here to where the values are first used.
-	 * You may want to use pointers for colors and vectors.
-	 */
-	
+  /*
+   * get parameter values. It is inefficient to do this all at the beginning of
+   * the code. Move the assignments here to where the values are first used.
+   * You may want to use pointers for colors and vectors.
+   */
+        
   miScalar val = worleynoise_val(state,param);
   if(val < 0) {
     miColor gap = *mi_eval_color(&param->gap);
@@ -249,12 +236,12 @@ DLLEXPORT miBoolean texture_worleynoise(
   }
   else {
     miColor *inner = mi_eval_color(&param->inner);
-  	miColor *outer = mi_eval_color(&param->outer);
-  	
+    miColor *outer = mi_eval_color(&param->outer);
+    
     grey_to_color(val, inner, outer, result);
   }
   
-	return(miTRUE);
+  return(miTRUE);
 }
 
 void grey_to_color(miScalar val, miColor *color1, miColor *color2, miColor *result) {
@@ -379,7 +366,7 @@ void point_distances(miState *state,texture_worleynoise_t *param,
   
   worley_context **contextp;
   worley_context *context;
-	mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
+  mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
   context = *contextp;
   
   update_cache(context, &cube, cube_dist);
