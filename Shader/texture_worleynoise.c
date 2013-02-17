@@ -22,44 +22,6 @@
                             (r)->z = powf((r)->z,p))
 
 
-/************* Hashing *************/
-
-// Condensing a floating point vector to a single `long` is somewhat tricky, due to numeric issues.
-// In this case, we assume that things will work out ok, 
-// due to the way the hash functions are actually used.
-// However, do not use this code for hashing of arbitrary vectors and expect things to work.
-                           
-unsigned long hashadd(unsigned long h, long int c) {
-  h += (h << 5);
-  return h^c;
-}
-// Adapted from djbhash by Dan Bernstein
-// Presumably, there are better hash functions, but this one is simple.
-// Worley's original paper has a reference to a book with an apparently good solution.
-// Also search for 
-unsigned long hash2(long int u, long int v) {
-  unsigned long int hash = 5381;
-  
-  hash += (hash << 5); hash = hash ^ u; // (hash * 33) ^ u
-  hash += (hash << 5); hash = hash ^ v; // (hash * 33) ^ v
-  
-  return hash;
-}
-
-unsigned long hash3(long int x, long int y, long int z) {
-  unsigned long int hash = hash2(x,y);
-  hash += (hash << 5); hash = hash ^ z; 
-  return hash;
-}
-
-// This assumes floats to be 4 bytes in size, just like long.
-// We use casting instead of rounding (with e.g lrintf), since that would possibly result
-// in the same hash values for values that should be different at small scales.
-#define mi_vector2d_hash(r) hash2((long)((r)->u), (long)((r)->v));
-
-#define mi_vector_hash(r) hash2((long)(r)->x, (long)(r)->y, (long)(r)->z);
-
-
 /************* Distance measures *************/
 
 miScalar dist_linear_squared(miVector2d *v1, miVector2d *v2) {
@@ -331,27 +293,31 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
     currentCube.v = cube->v - cube_dist;
     
     miVector2d *cache = context->cacheVals;
-    
-    for(int u = 0; u < 3; ++u) {
-      currentCube.u = cube->u - cube_dist;
-      for(int v = 0; v < 3; ++v) {
-        // currentCube.v = cube->v - cube_dist; // needed? (if not, why?)
-        long cube_hash = mi_vector2d_hash(&currentCube);
-        // probably doesn't work too well with threads...
-        // ideally, we want our own private random number generator, which automatically
-        // updates its seed after generating a random number.
-        mi_srandom(cube_hash);
-        
-        for(int k = 0; k < PTS_PER_CUBE; ++k) {
-          miVector2d pt = currentCube;
-          pt.u += mi_random() * cube_dist;
-          pt.v += mi_random() * cube_dist;
-          cache[(v * 3 + u) * 4 + k] = pt;
-        }
-        
-        currentCube.u += cube_dist;
+
+    // for the 3*3 cubes around the current cube,
+    // calculate the random points in that cube
+    for(int u=0; u<3; ++u) {
+      currentCube.v = cube->v - cube_dist;
+      for(int v=0; v<3; ++v) {
+	miScalar uSeed = currentCube.u;
+	miScalar vSeed = currentCube.v;
+	miScalar uvIncrement = cube_dist / (PTS_PER_CUBE + 1);
+	for(int k = 0; k < PTS_PER_CUBE; ++k) {
+	  miVector2d pt = currentCube;
+	  
+	  // FIXME: this can be made better
+	  // multiplication of seed by 500 is somewhat arbitrary.
+	  pt.u += mi_unoise_1d(uSeed*500) * cube_dist;
+	  pt.v += mi_unoise_1d(vSeed*500) * cube_dist;
+	  cache[(v * 3 + u) * 4 + k] = pt;
+
+	  uSeed += uvIncrement;
+	  vSeed += uvIncrement;
+	}
+
+	currentCube.v += cube_dist;
       }
-      currentCube.v += cube_dist;
+      currentCube.u += cube_dist;
     }
   }  
 }
