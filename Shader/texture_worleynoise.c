@@ -236,25 +236,26 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
+  miScalar scale = dist_scale(dist_measure);
   {
-    miScalar s = dist_scale(dist_measure);
-    f1 /= s;
-    f2 /= s;
-    f3 /= s;
+    f1 /= scale;
+    f2 /= scale;
+    f3 /= scale;
   }
   
-  miScalar s = 1.0;
-  {
-    miScalar gap_size = *mi_eval_scalar(&param->gap_size);
+  /* miScalar s = 1.0; */
+  /* { */
+  /*   miScalar gap_size = *mi_eval_scalar(&param->gap_size); */
+     
+  /*   // based on code from "Advanced Renderman" */
+  /*   // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1. */
+  /*   miScalar scaleFactor = (distance(dist_measure, &p1, &p2) / */
+  /*   			    (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2))); */
     
-    // based on code from "Advanced Renderman"
-    // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1.
-    miScalar scaleFactor = (distance(dist_measure, &p1, &p2) / 
-                            (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2)));
-    
-    if(gap_size * scaleFactor > f2 - f1) 
-      s = -1.0;
-  }
+
+  /*   if(gap_size * (scaleFactor * scale) > f2 - f1) //  on left side */
+  /*     s = -1.0; */
+  /* } */
   
   miScalar dist = 0.0;
   {
