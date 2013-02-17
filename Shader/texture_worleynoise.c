@@ -243,7 +243,7 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
     f3 /= scale;
   }
   
-  /* miScalar s = 1.0; */
+  miScalar s = 1.0;
   /* { */
   /*   miScalar gap_size = *mi_eval_scalar(&param->gap_size); */
      
