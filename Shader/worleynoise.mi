@@ -9,7 +9,12 @@ declare shader
 		
 		# linear, linear squared, manhattan, defaulting to linear
 		# to get a nice dropdown, use MEL
-		integer		"distance_measure", #: min 0 max 2 default 0
+		integer		"distance_measure", 
+		#: min 0 max 2 default 0
+		#: enum "Linear=0:Linear Squared=1:Manhattan=2"
+		
+		
+		
 		
 		# f1, 
 		# f2 - f1, 
@@ -19,6 +24,7 @@ declare shader
 		# Could also let user enter the coefficients for f1,f2,f3, but it's probably better
 		# to provide a good set of defaults and not require deep understanding of Worley noise
 		integer		"distance_mode", #: min 0 max 4 default 0
+		#: enum "f1=0:f2 - f1=1:(2 f1 + f2) / 3=2:(2 f3 - f2 - f1) / 2=3:f1/2 + f2/3 + f3/6=4"
 		
 		scalar		"scale", #: default 1.0
 		scalar 		"gap_size", #: softmin 0.0 softmax 1.0 default 0.3
