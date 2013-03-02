@@ -187,8 +187,18 @@ DLLEXPORT miBoolean texture_worleynoise(
    * the code. Move the assignments here to where the values are first used.
    * You may want to use pointers for colors and vectors.
    */
-        
+  
+  /*
+  miVector pt0 = state->tex_list[0];
+  miScalar s = (*mi_eval_scalar(&param->scale));
+  result->r = 0.5 * (sin(pt0.x / s) + 1);
+  result->g = 0.5 * (sin(pt0.y / s) + 1);
+  result->b = 0.5 * (sin(pt0.z / s) + 1);
+  return(miTRUE);
+  */
+
   miScalar val = worleynoise_val(state,param);
+
   if(val < 0) {
     miColor gap = *mi_eval_color(&param->gap);
     result->r = gap.r;
@@ -225,11 +235,17 @@ void point_distances(miState *state,texture_worleynoise_t *param,
                      miScalar *f2, miVector2d *p2,
                      miScalar *f3, miVector2d *p3);
 
+// FIXME: this seems to have some kind of error where it results in "speckles".
 miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   miScalar f1, f2, f3;
   miVector2d p1, p2, p3;
   
+  // ways to get the current point:
+  // state->tex_list[0]; // yields good results only in the x and y coordinate
+  // state->point // usable for 3D, but problematic for getting a smooth 2D texture as x,y and z all have to be somehow incorporated in the 2D vector to use
+  // state->tex // does not yield usable results / seems to be constant
   miVector pt0 = state->tex_list[0];
+  // FIXME: maybe make this object scale invariant by using mi_point_to_object (mi_point_to_object(state,result_ptr,state->point))
   miVector2d pt1; pt1.u = pt0.x; pt1.v = pt0.y;
   miVector2d *pt = &pt1;
   point_distances(state,param,pt,&f1,&p1,&f2,&p2,&f3,&p3);
@@ -244,6 +260,7 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   }
   
   miScalar s = 1.0;
+  // FIXME: find out why this does not work as expected and re-enable
   /* { */
   /*   miScalar gap_size = *mi_eval_scalar(&param->gap_size); */
      
@@ -282,7 +299,7 @@ miVector2d point_cube(miVector2d *pt, miScalar cube_dist) {
 
 void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist) {
   // in 3d, use mi_vector_dist instead of dist_linear_squared
-  if(context->cache_initialized && dist_linear_squared(&(context->cacheCube), cube) <= FLT_EPSILON) {
+  if(context->cache_initialized && dist_linear_squared(&(context->cacheCube), cube) <= FLT_EPSILON * 2) {
     return;
   }
   // can do this cheaper in theory by reusing old cache values if the new cacheCube is not too far away from the old one
@@ -307,13 +324,15 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
 	  miVector2d pt = currentCube;
 	  
 	  // FIXME: this can be made better
-	  // multiplication of seed by 500 is somewhat arbitrary.
-	  pt.u += mi_unoise_1d(uSeed*500) * cube_dist;
-	  pt.v += mi_unoise_1d(vSeed*500) * cube_dist;
-	  cache[(v * 3 + u) * 4 + k] = pt;
-
+	  // also, multiplication of seed by 1000 is somewhat arbitrary.
+	  // the main point is that we need multiple random values in [0,1] 
+	  // which are somehow seeded from the current cube with reproducible results
+	  pt.u += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
 	  uSeed += uvIncrement;
+	  pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
 	  vSeed += uvIncrement;
+
+	  cache[(v * 3 + u) * 4 + k] = pt;
 	}
 
 	currentCube.v += cube_dist;
