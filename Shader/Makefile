@@ -5,6 +5,9 @@ CPP = g++
 #MAYA_DIR = /Applications/Autodesk/maya2012
 MAYA_DIR = /Applications/Autodesk/maya2013
 
+# Windows standard MAYA_DIR:
+# C:\Program Files\Autodesk\Maya2013
+
 
 # Maya 2012's mental ray directory:
 #MENTALRAY_DEV_DIR = /devkit/mentalray/include
@@ -22,6 +25,8 @@ OBJS = texture_worleynoise.o
 SRCS = texture_worleynoise.c
 LIBFILE = worleynoise.dylib
 MIFILE = worleynoise.mi
+ICON_SMALL = render_texture_worleynoise.png
+ICON_LARGE = texture_worleynoise.png
 
 all: dylib 
 
@@ -38,3 +43,11 @@ clean:
 install:	
 	cp $(LIBFILE) $(MAYA_DIR)/mentalray/shaders
 	cp $(MIFILE) $(MAYA_DIR)/mentalray/shaders/include
+	cp $(ICON_SMALL) $(MAYA_DIR)/mentalray/icons
+	cp $(ICON_LARGE) $(MAYA_DIR)/mentalray/icons
+
+uninstall :	
+	rm $(MAYA_DIR)/mentalray/shaders/$(LIBFILE)
+	rm $(MAYA_DIR)/mentalray/shaders/include/$(MIFILE)
+	rm $(MAYA_DIR)/mentalray/icons/$(ICON_SMALL)
+	rm $(MAYA_DIR)/mentalray/icons/$(ICON_LARGE)
