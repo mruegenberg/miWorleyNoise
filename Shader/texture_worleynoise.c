@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <shader.h>
-#include <assert.h>
+// #include <assert.h>
 #include <float.h>
 
 
@@ -126,6 +126,8 @@ typedef struct {
   miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
 } worley_context;
 
+miLock cacheAccessLock;
+
 DLLEXPORT int texture_worleynoise_version(void) {return(1);}
 
 DLLEXPORT miBoolean texture_worleynoise_init(
@@ -156,6 +158,8 @@ DLLEXPORT miBoolean texture_worleynoise_init(
     {
       context->cache_initialized = 0;
     } // set cacheCube to be an invalid cube, so that the first cache hit fails
+
+    mi_init_lock(&cacheAccessLock);
   }
   return(miTRUE);
 }
@@ -169,6 +173,10 @@ DLLEXPORT miBoolean texture_worleynoise_exit(
     mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
     mi_mem_release(*contextp);
     *contextp = 0;
+
+    mi_lock(cacheAccessLock);
+    mi_unlock(cacheAccessLock);
+    mi_delete_lock(&cacheAccessLock);
   } else {
     /* shader exit */
   }
@@ -331,8 +339,8 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
 	  uSeed += uvIncrement;
 	  pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
 	  vSeed += uvIncrement;
-	  assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
-	  assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
+	  // assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
+	  // assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
 
 	  cache[(v * 3 + u) * PTS_PER_CUBE + k] = pt;
 	}
@@ -357,45 +365,37 @@ void point_distances(miState *state,texture_worleynoise_t *param,
   mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
   context = *contextp;
   
-  update_cache(context, &cube, cube_dist);
-  
-  miVector2d *cache = context->cacheVals;
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
-  
   *f3 = FLT_MAX;
   *f2 = *f3 - 1;
   *f1 = *f2 - 1;
+
+  mi_lock(cacheAccessLock);
+
+  update_cache(context, &cube, cube_dist);
+  
+  miVector2d *cache = context->cacheVals;
   
   for(int i=0; i < 3 * 3 * PTS_PER_CUBE; ++i) {
     miVector2d p = cache[i];
     miScalar d = distance(dist_measure, pt, &p);
-    if(d < *f1) {
-      *f3 = *f2; p3 = p2;
-      *f2 = *f1; p2 = p1;
-      *f1 = d; *p1 = p;
+    if(d < *f3) {
+      if(d < *f2) {
+        *f3 = *f2; *p3 = *p2;
+        if(d < *f1) {
+          *f2 = *f1; *p2 = *p1;
+          *f1 = d; *p1 = p;
+        }
+        else {
+          *f2 = d; *p2 = p;
+        }
+      }
+      else {
+        *f3 = d; *p3 = p;
+      }
     }
-    else if(d < *f2) {
-      *f3 = *f2; p3 = p2;
-      *f2 = d; *p2 = p;
-    }
-    else if(d < *f3) {
-      *f3 = d; *p3 = p;
-    }
-    /* if(d < *f3) { */
-    /*   if(d < *f2) { */
-    /*     f3 = f2; p3 = p2; */
-    /*     if(d < *f1) { */
-    /*       f2 = f1; p2 = p1; */
-    /*       *f1 = d; *p1 = p; */
-    /*     } */
-    /*     else { */
-    /*       *f2 = d; *p2 = p; */
-    /*     } */
-    /*   } */
-    /*   else { */
-    /*     *f3 = d; *p3 = p; */
-    /*   } */
-    /* } */
   }
+
+  mi_unlock(cacheAccessLock);
 }
 
