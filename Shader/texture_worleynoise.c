@@ -120,8 +120,6 @@ typedef struct {
   miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
 } worley_context;
 
-miLock cacheAccessLock;
-
 DLLEXPORT int texture_worleynoise_version(void) {return(1);}
 
 DLLEXPORT miBoolean texture_worleynoise_init(
@@ -129,31 +127,7 @@ DLLEXPORT miBoolean texture_worleynoise_init(
     texture_worleynoise_t *param,
     miBoolean *init_req)
 {
-  worley_context **contextp;
-  worley_context *context;
-  
-  if (!param) {
-    /* shader init */
-    *init_req = miTRUE; /* do instance inits */
-  } else { /* shader instance init */
-    // set up context
-    
-    mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
-    context = *contextp = (worley_context*)mi_mem_allocate( sizeof(worley_context) );
-    
-    {
-      miInteger distance_measure = *mi_eval_integer(&param->distance_measure);
-      miVector2d zero; zero.u = 0; zero.v = 0;
-      miScalar cube_dist = CUBE_DIST * (*mi_eval_scalar(&param->scale));
-      miVector2d cube; cube.u = cube_dist / 2; cube.v = cube_dist / 2;
-    } // set cube_radius based on the selected distance measure
-    
-    {
-      context->cache_initialized = 0;
-    } // set cacheCube to be an invalid cube, so that the first cache hit fails
-
-    mi_init_lock(&cacheAccessLock);
-  }
+  *init_req = miTRUE;
   return(miTRUE);
 }
 
@@ -162,14 +136,12 @@ DLLEXPORT miBoolean texture_worleynoise_exit(
     texture_worleynoise_t *param)
 {
   if (param) { /* shader instance exit */
-    worley_context ** contextp;
-    mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
-    mi_mem_release(*contextp);
-    *contextp = 0;
-
-    /* mi_lock(cacheAccessLock); */
-    /* mi_unlock(cacheAccessLock); */
-    /* mi_delete_lock(&cacheAccessLock); */
+    int num;
+    worley_context **contexts;
+    mi_query(miQ_FUNC_TLS_GETALL, state, miNULLTAG, &contexts, &num);
+    for(int i=0; i < num; i++) {
+      mi_mem_release(contexts[i]);
+    }
   } else {
     /* shader exit */
   }
@@ -183,20 +155,14 @@ DLLEXPORT miBoolean texture_worleynoise(
     miState *state,
     texture_worleynoise_t *param)
 {
-  /*
-   * get parameter values. It is inefficient to do this all at the beginning of
-   * the code. Move the assignments here to where the values are first used.
-   * You may want to use pointers for colors and vectors.
-   */
-  
-  /*
-  miVector pt0 = state->tex_list[0];
-  miScalar s = (*mi_eval_scalar(&param->scale));
-  result->r = 0.5 * (sin(pt0.x / s) + 1);
-  result->g = 0.5 * (sin(pt0.y / s) + 1);
-  result->b = 0.5 * (sin(pt0.z / s) + 1);
-  return(miTRUE);
-  */
+  worley_context *context;
+  mi_query(miQ_FUNC_TLS_GET, state, miNULLTAG, &context);
+  if (!context) {
+    context = mi_mem_allocate( sizeof(worley_context) );
+    mi_query(miQ_FUNC_TLS_SET, state, miNULLTAG, &context);
+    context->cache_initialized = 0;
+  }
+
 
   miScalar val = worleynoise_val(state,param);
 
@@ -270,7 +236,7 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
     miScalar scaleFactor = (distance(dist_measure, &p1, &p2) /
     			    (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2)));
     
-
+    // FIXME: there may be some adjustment needed for distance measures that are not just dist_linear
     if(gap_size * (scaleFactor * scale) > f2 - f1) //  on left side
       s = -1.0;
   }
@@ -353,17 +319,13 @@ void point_distances(miState *state,texture_worleynoise_t *param,
   miScalar cube_dist = CUBE_DIST * (*mi_eval_scalar(&param->scale));
   miVector2d cube = point_cube(pt,cube_dist);
   
-  worley_context **contextp;
   worley_context *context;
-  mi_query(miQ_FUNC_USERPTR, state, 0, (void *)&contextp);
-  context = *contextp;
+  mi_query(miQ_FUNC_TLS_GET, state, miNULLTAG, &context);
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   *f3 = FLT_MAX;
   *f2 = *f3 - 1;
   *f1 = *f2 - 1;
-
-  mi_lock(cacheAccessLock);
 
   update_cache(context, &cube, cube_dist);
   
@@ -388,7 +350,5 @@ void point_distances(miState *state,texture_worleynoise_t *param,
       }
     }
   }
-
-  mi_unlock(cacheAccessLock);
 }
 
