@@ -47,11 +47,11 @@ minkowskiDistance :: Double -> Point -> Point -> Double
 minkowskiDistance p p1 p2 = (sum (map ((** p) . abs) diffs))**(1/p)
   where diffs = zipWith (\c1 c2 -> fromIntegral (c1 - c2)) p1 p2
         
-distance = linearDistance
-distScale = 35
+-- distance = linearDistance
+-- distScale = 35
 
--- distance = linearSqDistance
--- distScale = 800
+distance = linearSqDistance
+distScale = 160000
 
 -- distance = manhattanDistance
 -- distScale = 40
@@ -68,7 +68,7 @@ data VoronoiParams = VoronoiParams {
   }
                      
 -- distance between cubes.
-cubeDist = 80
+cubeDist = 800
 
 cubeRadius :: Double
 cubeRadius = distance [0,0] [cubeDist `div` 2, cubeDist `div` 2]
@@ -192,7 +192,7 @@ valForPx cache pt = val `seq` (val, cache')
     -- Using the scaleFactor defined above normalizes the point distribution and hence gives us the desired result,
     -- i.e gaps with even width.
     -- Note: there are still some artefacts if p1p2Dist, f1' and f2' are all very small.
-    tScaleF = distScale / 15
+    tScaleF = distScale / 40
     val  = if tScaleF * scaleFactor >= f2' - f1'  then Gap scaledDist else Val scaledDist
 
 -- compute the color for a give point
@@ -202,11 +202,11 @@ colorForPx params cache pt = case (valForPx cache pt, color3 params) of
   ((val,cache'), _)           -> (greyToColor (color1 params) (color2 params) (value val), cache')
 
 -- size of the image to be generated
-width = 512
-height = 512
+width = 2048
+height = 2048
     
 main = do
-  let params = VoronoiParams [243,240,230,255] [0,40,80,255] (Just [130,25,35,255])
+  let params = VoronoiParams [60,60,60,255] [255,255,255,255] (Just [0,0,0,255])
   -- let params = VoronoiParams [255,255,255,255] [0,0,0,255] Nothing -- grayscale
   let pixels = [[x,y] | x <- [1..width], y <- [1..height]]
   let (rgbVals,_) = foldl' (\(img,cache) px -> case colorForPx params cache px of (c,cache') -> (c ++ img, cache')) ([],Cache emptyCube Map.empty) pixels
