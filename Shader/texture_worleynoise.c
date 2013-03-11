@@ -167,9 +167,9 @@ DLLEXPORT miBoolean texture_worleynoise_exit(
     mi_mem_release(*contextp);
     *contextp = 0;
 
-    mi_lock(cacheAccessLock);
-    mi_unlock(cacheAccessLock);
-    mi_delete_lock(&cacheAccessLock);
+    /* mi_lock(cacheAccessLock); */
+    /* mi_unlock(cacheAccessLock); */
+    /* mi_delete_lock(&cacheAccessLock); */
   } else {
     /* shader exit */
   }
