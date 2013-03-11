@@ -261,18 +261,18 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   
   miScalar s = 1.0;
   // FIXME: find out why this does not work as expected and re-enable
-  /* { */
-  /*   miScalar gap_size = *mi_eval_scalar(&param->gap_size); */
+  {
+    miScalar gap_size = *mi_eval_scalar(&param->gap_size);
      
-  /*   // based on code from "Advanced Renderman" */
-  /*   // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1. */
-  /*   miScalar scaleFactor = (distance(dist_measure, &p1, &p2) / */
-  /*   			    (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2))); */
+    // based on code from "Advanced Renderman"
+    // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1.
+    miScalar scaleFactor = (distance(dist_measure, &p1, &p2) /
+    			    (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2)));
     
 
-  /*   if(gap_size * (scaleFactor * scale) > f2 - f1) //  on left side */
-  /*     s = -1.0; */
-  /* } */
+    if(gap_size * (scaleFactor * scale) > f2 - f1) //  on left side
+      s = -1.0;
+  }
   
   miScalar dist = 0.0;
   {
@@ -360,29 +360,40 @@ void point_distances(miState *state,texture_worleynoise_t *param,
   miVector2d *cache = context->cacheVals;
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
-  int i = 0;
-  *p1 = cache[i++]; *f1 = distance(dist_measure, pt, p1);
-  *p2 = cache[i++]; *f2 = distance(dist_measure, pt, p3);
-  *p3 = cache[i++]; *f3 = distance(dist_measure, pt, p3);
+  *f3 = FLT_MAX;
+  *f2 = *f3 - 1;
+  *f1 = *f2 - 1;
   
-  for(; i < 3 * 3 * PTS_PER_CUBE; ++i) {
+  for(int i=0; i < 3 * 3 * PTS_PER_CUBE; ++i) {
     miVector2d p = cache[i];
     miScalar d = distance(dist_measure, pt, &p);
-    if(d < *f3) {
-      if(d < *f2) {
-        f3 = f2; p3 = p2;
-        if(d < *f1) {
-          f2 = f1; p2 = p1;
-          *f1 = d; *p1 = p;
-        }
-        else {
-          *f2 = d; *p2 = p;
-        }
-      }
-      else {
-        *f3 = d; *p3 = p;
-      }
+    if(d < *f1) {
+      *f3 = *f2; p3 = p2;
+      *f2 = *f1; p2 = p1;
+      *f1 = d; *p1 = p;
     }
+    else if(d < *f2) {
+      *f3 = *f2; p3 = p2;
+      *f2 = d; *p2 = p;
+    }
+    else if(d < *f3) {
+      *f3 = d; *p3 = p;
+    }
+    /* if(d < *f3) { */
+    /*   if(d < *f2) { */
+    /*     f3 = f2; p3 = p2; */
+    /*     if(d < *f1) { */
+    /*       f2 = f1; p2 = p1; */
+    /*       *f1 = d; *p1 = p; */
+    /*     } */
+    /*     else { */
+    /*       *f2 = d; *p2 = p; */
+    /*     } */
+    /*   } */
+    /*   else { */
+    /*     *f3 = d; *p3 = p; */
+    /*   } */
+    /* } */
   }
 }
 
