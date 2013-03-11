@@ -43,7 +43,7 @@ miScalar dist_manhattan(miVector2d *v1, miVector2d *v2) {
   // return s.x + s.y + s.z;
   miScalar d1 = v1->u - v2->u;
   miScalar d2 = v1->v - v2->v;
-  return d1 + d2;
+  return fabs(d1) + fabs(d2);
 }
 
 // // note: Behavior might get weird for p <= 0.
@@ -281,7 +281,7 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
       case DIST_F1: dist = f1; break;
       case DIST_F2_M_F1: dist = f2 - f1; break;
       case DIST_F1_P_F2: dist = (2 * f1 + f2) / 3; break;
-      case DIST_F3_M_F2_M_F1: dist = (2 * f3 - f2 - f1) / 2;
+      case DIST_F3_M_F2_M_F1: dist = (2 * f3 - f2 - f1) / 2; break;
       case DIST_F1_P_F2_P_F3: dist = (0.5 * f1 + 0.33 * f2 + (1 - 0.5 - 0.33) * f3); break;
       default: ;
     }
@@ -331,8 +331,10 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
 	  uSeed += uvIncrement;
 	  pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
 	  vSeed += uvIncrement;
+	  assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
+	  assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
 
-	  cache[(v * 3 + u) * 4 + k] = pt;
+	  cache[(v * 3 + u) * PTS_PER_CUBE + k] = pt;
 	}
 
 	currentCube.v += cube_dist;
