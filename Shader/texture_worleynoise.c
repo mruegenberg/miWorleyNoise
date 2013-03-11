@@ -103,10 +103,6 @@ miScalar distance(dist_measure distance_measure, miVector2d *v1, miVector2d *v2)
 #define CACHE_SIZE 36
 #define CUBE_DIST 0.05
 
-// Element of the shader state:
-// CUBE_RADIUS, defined as distance((0,0),(CUBE_DIST/2,CUBE_DIST/2))
-// wrt the chosen distance measure
-
 // has to fit the .mi file
 typedef struct {
   miColor         inner;
@@ -119,8 +115,6 @@ typedef struct {
 } texture_worleynoise_t;
 
 typedef struct {
-  miScalar cube_radius;
-  
   miBoolean cache_initialized;
   miVector2d cacheCube; // the "center" cube of the cache
   miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
@@ -152,7 +146,6 @@ DLLEXPORT miBoolean texture_worleynoise_init(
       miVector2d zero; zero.u = 0; zero.v = 0;
       miScalar cube_dist = CUBE_DIST * (*mi_eval_scalar(&param->scale));
       miVector2d cube; cube.u = cube_dist / 2; cube.v = cube_dist / 2;
-      context->cube_radius = distance(distance_measure, &zero, &cube);
     } // set cube_radius based on the selected distance measure
     
     {
