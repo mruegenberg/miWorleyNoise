@@ -136,6 +136,8 @@ DLLEXPORT miBoolean texture_worleynoise_exit(
     texture_worleynoise_t *param)
 {
   if (param) { /* shader instance exit */
+    // note: is is indeed correct to release the contexts during shader instance exit!!!
+    // (TODO: explain why)
     int num;
     worley_context **contexts;
     mi_query(miQ_FUNC_TLS_GETALL, state, miNULLTAG, &contexts, &num);
@@ -269,7 +271,7 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
   if(context->cache_initialized && dist_linear_squared(&(context->cacheCube), cube) <= FLT_EPSILON * 2) {
     return;
   }
-  // can do this cheaper in theory by reusing old cache values if the new cacheCube is not too far away from the old one
+  // note: in theory, we could reuse parts of the old cache if the new cube is adjacent to the cache cube
   context->cacheCube = *cube;
   
   {
@@ -308,7 +310,9 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
       }
       currentCube.u += cube_dist;
     }
-  }  
+  }
+
+  context->cache_initialized = 1;
 }
 
 void point_distances(miState *state,texture_worleynoise_t *param, 
