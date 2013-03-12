@@ -8,7 +8,6 @@ declare shader
 		color   "gap",    #: default 0., 0., 0., 0.
 		
 		# linear, linear squared, manhattan, defaulting to linear
-		# to get a nice dropdown, use MEL
 		integer		"distance_measure", 
 		#: min 0 max 2 default 0
 		#: enum "Linear=0:Linear Squared=1:Manhattan=2"
@@ -27,7 +26,7 @@ declare shader
 		#: enum "f1=0:f2 - f1=1:(2 f1 + f2) / 3=2:(2 f3 - f2 - f1) / 2=3:f1/2 + f2/3 + f3/6=4"
 		
 		scalar		"scale", #: default 1.0
-		scalar 		"gap_size", #: softmin 0.0 softmax 1.0 default 0.3
+		scalar 		"gap_size", #: softmin 0.0 softmax 1.0 default 0.05
 		
 	)
 	version 1

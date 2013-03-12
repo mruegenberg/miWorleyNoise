@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <shader.h>
-// #include <assert.h>
 #include <float.h>
 
 
@@ -77,7 +76,7 @@ typedef enum dist_mode {
 miScalar dist_scale(dist_measure m) {
   switch(m) {
     case DIST_LINEAR: return 0.04;
-    case DIST_LINEAR_SQUARED: return 0.025;
+    case DIST_LINEAR_SQUARED: return 0.001;
     case DIST_MANHATTAN: return 0.07;
     // case DIST_MINKOWSKI: return 30; // actually, this should be based on the parameter p. This is for 2, since that is the same as linear/euclidean distance
     default: return -1;
@@ -204,7 +203,6 @@ void point_distances(miState *state,texture_worleynoise_t *param,
                      miScalar *f2, miVector2d *p2,
                      miScalar *f3, miVector2d *p3);
 
-// FIXME: this seems to have some kind of error where it results in "speckles".
 miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   miScalar f1, f2, f3;
   miVector2d p1, p2, p3;
@@ -214,7 +212,6 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   // state->point // usable for 3D, but problematic for getting a smooth 2D texture as x,y and z all have to be somehow incorporated in the 2D vector to use
   // state->tex // does not yield usable results / seems to be constant
   miVector pt0 = state->tex_list[0];
-  // FIXME: maybe make this object scale invariant by using mi_point_to_object (mi_point_to_object(state,result_ptr,state->point))
   miVector2d pt1; pt1.u = pt0.x; pt1.v = pt0.y;
   miVector2d *pt = &pt1;
   point_distances(state,param,pt,&f1,&p1,&f2,&p2,&f3,&p3);
@@ -222,25 +219,24 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
   miScalar scale = dist_scale(dist_measure);
-  {
-    f1 /= scale;
-    f2 /= scale;
-    f3 /= scale;
-  }
   
   miScalar s = 1.0;
-  // FIXME: find out why this does not work as expected and re-enable
   {
     miScalar gap_size = *mi_eval_scalar(&param->gap_size);
      
     // based on code from "Advanced Renderman"
     // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1.
-    miScalar scaleFactor = (distance(dist_measure, &p1, &p2) /
-    			    (distance(dist_measure, pt, &p1) + distance(dist_measure, pt, &p2)));
+    miScalar scaleFactor = (distance(dist_measure, &p1, &p2) * scale) / (f1 + f2);
     
     // FIXME: there may be some adjustment needed for distance measures that are not just dist_linear
-    if(gap_size * (scaleFactor * scale) > f2 - f1) //  on left side
+    if(gap_size * scaleFactor > f2 - f1) //  on left side
       s = -1.0;
+  }
+  
+  {
+    f1 /= scale;
+    f2 /= scale;
+    f3 /= scale;
   }
   
   miScalar dist = 0.0;
