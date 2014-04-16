@@ -1,3 +1,16 @@
+Installation
+============
+Let MAYA_DIR be your Maya directory (e.g /Applications/Autodesk/maya2013).
+
+Copy the .dylib file to MAYA_DIR/mentalray/shaders,
+the .mi file to MAYA_DIR/mentalray/shaders/include,
+the two .png icon files to MAYA_DIR/mentalray/icons.
+
+
+
+Compiling from source
+=====================
+
 To build and install the shader, do, in order:
 make clean // only needed if there are existing .dylib and .o files
 make all

@@ -3,19 +3,18 @@ CPP = g++
 
 #MAYA_DIR = /Applications/Autodesk/maya2011
 #MAYA_DIR = /Applications/Autodesk/maya2012
-MAYA_DIR = /Applications/Autodesk/maya2013
-
+#MAYA_DIR = /Applications/Autodesk/maya2013
+MAYA_DIR = /Applications/Autodesk/maya2015
 # Windows standard MAYA_DIR:
 # C:\Program Files\Autodesk\Maya2013
 
+# Maya's mental ray directory: (appended to MAYA_DIR)
+MENTALRAY_DIR = $(MAYA_DIR)/../mentalrayForMaya2015
 
-# Maya 2012's mental ray directory:
-#MENTALRAY_DEV_DIR = /devkit/mentalray/include
+# The mentalray dev dir. Appended to MENTALRAY_DIR
+MENTALRAY_DEV_DIR = $(MENTALRAY_DIR)/devkit/include
 
-# Maya 2013's mental ray directory: (appended to MAYA_DIR)
-MENTALRAY_DEV_DIR = /mentalray/devkit/include
-
-INC = -I$(MAYA_DIR)$(MENTALRAY_DEV_DIR)
+INC = -I$(MENTALRAY_DEV_DIR)
 LIB = 
 LIB_STATIC = 
 CFLAGS = -c -O3 -fPIC -DBIT64 -dynamic -fno-common -std=c99
@@ -41,13 +40,13 @@ clean:
 	rm -f $(LIBFILE)
 
 install:	
-	cp $(LIBFILE) $(MAYA_DIR)/mentalray/shaders
-	cp $(MIFILE) $(MAYA_DIR)/mentalray/shaders/include
-	cp $(ICON_SMALL) $(MAYA_DIR)/mentalray/icons
-	cp $(ICON_LARGE) $(MAYA_DIR)/mentalray/icons
+	cp $(LIBFILE) $(MENTALRAY_DIR)/shaders
+	cp $(MIFILE) $(MENTALRAY_DIR)/shaders/include
+	cp $(ICON_SMALL) $(MENTALRAY_DIR)/icons
+	cp $(ICON_LARGE) $(MENTALRAY_DIR)/icons
 
 uninstall :	
-	rm $(MAYA_DIR)/mentalray/shaders/$(LIBFILE)
-	rm $(MAYA_DIR)/mentalray/shaders/include/$(MIFILE)
-	rm $(MAYA_DIR)/mentalray/icons/$(ICON_SMALL)
-	rm $(MAYA_DIR)/mentalray/icons/$(ICON_LARGE)
+	rm $(MENTALRAY_DIR)/shaders/$(LIBFILE)
+	rm $(MENTALRAY_DIR)/shaders/include/$(MIFILE)
+	rm $(MENTALRAY_DIR)/icons/$(ICON_SMALL)
+	rm $(MENTALRAY_DIR)/icons/$(ICON_LARGE)

@@ -76,7 +76,7 @@ typedef enum dist_mode {
 miScalar dist_scale(dist_measure m) {
   switch(m) {
     case DIST_LINEAR: return 0.04;
-    case DIST_LINEAR_SQUARED: return 0.001;
+    case DIST_LINEAR_SQUARED: return 0.01;
     case DIST_MANHATTAN: return 0.07;
     // case DIST_MINKOWSKI: return 30; // actually, this should be based on the parameter p. This is for 2, since that is the same as linear/euclidean distance
     default: return -1;
@@ -223,13 +223,21 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   miScalar s = 1.0;
   {
     miScalar gap_size = *mi_eval_scalar(&param->gap_size);
+    
+    miVector2d ptX; 
+    ptX.u = pt1.u + mi_noise_2d(pt1.u*1000,pt1.v*1000) * 0.15 * scale;
+    ptX.v = pt1.v + mi_noise_2d(pt1.u*1000 + 100,pt1.v*1000+100) * 0.15 * scale;
+    miScalar f1X, f2X, f3X;
+    miVector2d p1X, p2X, p3X;
+    
+    point_distances(state,param,&ptX,&f1X,&p1X,&f2X,&p2X,&f3X,&p3X);
      
     // based on code from "Advanced Renderman"
     // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1.
-    miScalar scaleFactor = (distance(dist_measure, &p1, &p2) * scale) / (f1 + f2);
+    miScalar scaleFactor = (distance(dist_measure, &p1X, &p2X) * scale) / (f1X + f2X);
     
     // FIXME: there may be some adjustment needed for distance measures that are not just dist_linear
-    if(gap_size * scaleFactor > f2 - f1) //  on left side
+    if(gap_size * scaleFactor > f2X - f1X) //  on left side
       s = -1.0;
   }
   
