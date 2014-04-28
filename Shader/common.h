@@ -29,6 +29,12 @@ miScalar dist_linear(miVector2d *v1, miVector2d *v2);
 
 miScalar dist_manhattan(miVector2d *v1, miVector2d *v2);
 
+miScalar dist_linear_squared3(miVector *v1, miVector *v2);
+
+miScalar dist_linear3(miVector *v1, miVector *v2);
+
+miScalar dist_manhattan3(miVector *v1, miVector *v2);
+
 // // note: Behavior might get weird for p <= 0.
 //          Usually, use integer values for p.
 // miScalar dist_minkowski(miScalar p, miVector2d v1, miVector2d v2) {
@@ -60,6 +66,8 @@ typedef enum dist_mode {
 miScalar dist_scale(dist_measure m);
 
 miScalar distance(dist_measure distance_measure, miVector2d *v1, miVector2d *v2);
+
+miScalar distance3(dist_measure distance_measure, miVector *v1, miVector *v2);
 
 /************* Shader *************/
 

@@ -28,6 +28,21 @@ miScalar dist_manhattan(miVector2d *v1, miVector2d *v2) {
   return fabs(d1) + fabs(d2);
 }
 
+miScalar dist_linear_squared3(miVector *v1, miVector *v2) {
+  miVector s; mi_vector_sub(&s,v1,v2);
+  return mi_vector_dot(&s,&s);
+}
+
+miScalar dist_linear3(miVector *v1, miVector *v2) {
+  return sqrt( dist_linear_squared3(v1,v2) );
+}
+
+miScalar dist_manhattan3(miVector *v1, miVector *v2) {
+  // 3D:
+  miVector s; mi_vector_sub(&s,v1,v2);
+  return fabs(s.x) + fabs(s.y) + fabs(s.z);
+}
+
 // // note: Behavior might get weird for p <= 0.
 //          Usually, use integer values for p.
 // miScalar dist_minkowski(miScalar p, miVector2d v1, miVector2d v2) {
@@ -56,6 +71,16 @@ miScalar distance(dist_measure distance_measure, miVector2d *v1, miVector2d *v2)
     case DIST_LINEAR: return dist_linear(v1,v2);
     case DIST_LINEAR_SQUARED: return dist_linear_squared(v1,v2);
     case DIST_MANHATTAN: return dist_manhattan(v1,v2);
+    // case DIST_MINKOWSKI: return 30; // actually, this should be based on the parameter p. This is for 2, since that is the same as linear/euclidean distance
+    default: return -1;
+  }
+}
+
+miScalar distance3(dist_measure distance_measure, miVector *v1, miVector *v2) {
+  switch(distance_measure) {
+    case DIST_LINEAR: return dist_linear3(v1,v2);
+    case DIST_LINEAR_SQUARED: return dist_linear_squared3(v1,v2);
+    case DIST_MANHATTAN: return dist_manhattan3(v1,v2);
     // case DIST_MINKOWSKI: return 30; // actually, this should be based on the parameter p. This is for 2, since that is the same as linear/euclidean distance
     default: return -1;
   }
