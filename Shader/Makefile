@@ -20,8 +20,8 @@ LIB_STATIC =
 CFLAGS = -c -O3 -fPIC -DBIT64 -dynamic -fno-common -std=c99
 LIBTOOL = libtool
 
-OBJS = texture_worleynoise.o
-SRCS = texture_worleynoise.c
+OBJS = texture_worleynoise.o common.o
+SRCS = texture_worleynoise.c common.c
 LIBFILE = worleynoise.dylib
 MIFILE = worleynoise.mi
 ICON_SMALL = render_texture_worleynoise.png
