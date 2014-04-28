@@ -20,12 +20,12 @@ LIB_STATIC =
 CFLAGS = -c -O3 -fPIC -DBIT64 -dynamic -fno-common -std=c99
 LIBTOOL = libtool
 
-OBJS = texture_worleynoise.o common.o
-SRCS = texture_worleynoise.c common.c
+OBJS = texture_worleynoise.o texture_worleynoise3d.o common.o
+SRCS = texture_worleynoise.c texture_worleynoise3d.c common.c
 LIBFILE = worleynoise.dylib
-MIFILE = worleynoise.mi
-ICON_SMALL = render_texture_worleynoise.png
-ICON_LARGE = texture_worleynoise.png
+MIFILES = worleynoise*.mi
+ICONS_SMALL = render_texture_worleynoise*.png
+ICONS_LARGE = texture_worleynoise*.png
 
 all: dylib 
 
@@ -41,12 +41,12 @@ clean:
 
 install:	
 	cp $(LIBFILE) $(MENTALRAY_DIR)/shaders
-	cp $(MIFILE) $(MENTALRAY_DIR)/shaders/include
-	cp $(ICON_SMALL) $(MENTALRAY_DIR)/icons
-	cp $(ICON_LARGE) $(MENTALRAY_DIR)/icons
+	cp $(MIFILES) $(MENTALRAY_DIR)/shaders/include
+	cp $(ICONS_SMALL) $(MENTALRAY_DIR)/icons
+	cp $(ICONS_LARGE) $(MENTALRAY_DIR)/icons
 
 uninstall :	
 	rm $(MENTALRAY_DIR)/shaders/$(LIBFILE)
-	rm $(MENTALRAY_DIR)/shaders/include/$(MIFILE)
-	rm $(MENTALRAY_DIR)/icons/$(ICON_SMALL)
-	rm $(MENTALRAY_DIR)/icons/$(ICON_LARGE)
+	rm $(MENTALRAY_DIR)/shaders/include/$(MIFILES)
+	rm $(MENTALRAY_DIR)/icons/$(ICONS_SMALL)
+	rm $(MENTALRAY_DIR)/icons/$(ICONS_LARGE)
