@@ -86,7 +86,6 @@ DLLEXPORT miBoolean texture_worleynoise3d(
     
     grey_to_color(val, inner, outer, result);
   }
-  	
   
   return(miTRUE);
 }
@@ -187,7 +186,7 @@ void update_cache3(worley_context3 *context, miVector *cube, miScalar cube_dist)
     miVector currentCube;
     currentCube.x = cube->x - cube_dist;
     currentCube.y = cube->y - cube_dist;
-    currentCube.y = cube->z - cube_dist;
+    currentCube.z = cube->z - cube_dist;
     
     miVector *cache = context->cacheVals;
 
@@ -195,28 +194,25 @@ void update_cache3(worley_context3 *context, miVector *cube, miScalar cube_dist)
 		// calculate the random points in that cube
 		for(int x=0; x<3; ++x) {
 			currentCube.y = cube->y - cube_dist;
-			currentCube.z = cube->z - cube_dist;
 			for(int y=0; y<3; ++y) {
 				currentCube.z = cube->z - cube_dist;
 				for(int z=0; z<3; ++z) {
-					miScalar xSeed = currentCube.x;
-					miScalar ySeed = currentCube.y;
-					miScalar zSeed = currentCube.z;
+					miVector seed; 
+					seed.x = currentCube.x * 1000;
+					seed.y = currentCube.y * 1000;
+					seed.z = currentCube.z * 1000;
 					miScalar xyzIncrement = cube_dist / (PTS_PER_CUBE + 1);
 					for(int k = 0; k < PTS_PER_CUBE; ++k) {
 						miVector pt = currentCube;
-	  
-						miVector seed; 
-						seed.x = xSeed * 1000; seed.y = ySeed * 1000; seed.z = zSeed * 1000;
+						
 						pt.x += mi_unoise_3d(&seed) * cube_dist;
-						xSeed += xyzIncrement;
-						seed.x = xSeed * 1000; 
-						pt.y +=mi_unoise_3d(&seed) * cube_dist;
-						ySeed += xyzIncrement;
-						seed.y = ySeed * 1000; 
-						pt.z = mi_unoise_3d(&seed) * cube_dist;
-						zSeed += xyzIncrement;
-						seed.z = zSeed * 1000;
+						seed.x = (seed.x + xyzIncrement) * 1000.0;
+						
+						pt.y += mi_unoise_3d(&seed) * cube_dist;
+						seed.y = (seed.y + xyzIncrement) * 1000.0;
+
+						pt.z += mi_unoise_3d(&seed) * cube_dist;
+						seed.z = (seed.z + xyzIncrement) * 1000.0;
 
 						cache[(z * 3 * 3 + (y * 3 + x)) * PTS_PER_CUBE + k] = pt;
 					}
