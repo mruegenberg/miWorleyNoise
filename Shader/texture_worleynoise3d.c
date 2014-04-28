@@ -18,6 +18,8 @@ typedef struct {
   miInteger distance_mode;
   miScalar scale;
   miScalar gap_size;
+	
+	miMatrix        matrix;
 } texture_worleynoise3d_t;
 
 typedef struct {
@@ -108,7 +110,9 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
 	// instead, we just take an u and v value explicitly; they would usually be provided by a 2D placement node.
 	
 	// note: getting current values must always be wrapped in mi_eval... calls!
-	miVector pt = state->point;
+	miVector pt;
+	miScalar *m = mi_eval_transform(&param->matrix);
+	mi_point_transform(&pt,&state->point,m);
 	
   point_distances3(state,param,&pt,&f1,&p1,&f2,&p2,&f3,&p3);
   
@@ -122,13 +126,16 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
     miScalar gap_size = *mi_eval_scalar(&param->gap_size);
     
     miVector ptX = pt;
-		// TODO
-		// 
-		// // jagged edges. useful for broken earth crusts
-		// if(jagged) {
-		// 	ptX.u += mi_noise_2d(pt.u*1000,pt.v*1000) * 0.15 * scale;
-		// 	ptX.v += mi_noise_2d(pt.u*1000 + 100,pt.v*1000+100) * 0.15 * scale;
-		// }
+		
+		// jagged edges. useful for broken earth crusts
+		if(jagged) {
+			miVector seed = pt; mi_vector_mul(&seed,1000);
+			ptX.x += mi_unoise_3d(&seed) * 0.15 * scale;
+			seed.x += 100; seed.y += 50; 
+			ptX.y += mi_unoise_3d(&seed) * 0.15 * scale;
+			seed.y += 50; seed.z += 100;
+			ptX.z += mi_unoise_3d(&seed) * 0.15 * scale;
+		}
 		
     miScalar f1X, f2X, f3X;
     miVector p1X, p2X, p3X;

@@ -2,7 +2,7 @@ min version "3.0.0"
 max version "3.10.99"
 
 declare shader
-	color "texture_worleynoise3d" (		
+	color "texture_worleynoise3d" (	
 		# use jagged edges for gap?
 		boolean "jagged_gap", #: default off
 		
@@ -31,6 +31,10 @@ declare shader
 		scalar		"scale", #: default 1.0
 		scalar 		"gap_size", #: softmin 0.0 softmax 1.0 default 0.05
 		
+    transform  "matrix" default 1 0 0 0
+                                0 1 0 0
+                                0 0 1 0
+                                0 0 0 1
 	)
 	version 1
 	apply texture
