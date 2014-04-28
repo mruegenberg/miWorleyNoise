@@ -104,6 +104,11 @@ miScalar distance(dist_measure distance_measure, miVector2d *v1, miVector2d *v2)
 
 // has to fit the .mi file
 typedef struct {
+	miScalar        u;
+	miScalar        v;
+	
+	miBoolean jagged_gap;
+	
   miColor         inner;
   miColor         outer;
   miColor         gap;
@@ -119,7 +124,7 @@ typedef struct {
   miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
 } worley_context;
 
-DLLEXPORT int texture_worleynoise_version(void) {return(1);}
+DLLEXPORT int texture_worleynoise_version(void) {return(2);}
 
 DLLEXPORT miBoolean texture_worleynoise_init(
     miState *state,
@@ -163,10 +168,10 @@ DLLEXPORT miBoolean texture_worleynoise(
     mi_query(miQ_FUNC_TLS_SET, state, miNULLTAG, &context);
     context->cache_initialized = 0;
   }
-
-
+  
+  
   miScalar val = worleynoise_val(state,param);
-
+  
   if(val < 0) {
     miColor gap = *mi_eval_color(&param->gap);
     result->r = gap.r;
@@ -180,6 +185,7 @@ DLLEXPORT miBoolean texture_worleynoise(
     
     grey_to_color(val, inner, outer, result);
   }
+  	
   
   return(miTRUE);
 }
@@ -211,22 +217,32 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   // state->tex_list[0]; // yields good results only in the x and y coordinate
   // state->point // usable for 3D, but problematic for getting a smooth 2D texture as x,y and z all have to be somehow incorporated in the 2D vector to use
   // state->tex // does not yield usable results / seems to be constant
-  miVector pt0 = state->tex_list[0];
-  miVector2d pt1; pt1.u = pt0.x; pt1.v = pt0.y;
-  miVector2d *pt = &pt1;
-  point_distances(state,param,pt,&f1,&p1,&f2,&p2,&f3,&p3);
+	// 
+	// instead, we just take an u and v value explicitly; they would usually be provided by a 2D placement node.
+	
+	// note: getting current values must always be wrapped in mi_eval... calls!
+	miVector2d pt;
+	pt.u = *mi_eval_scalar(&param->u); pt.v = *mi_eval_scalar(&param->v); 
+	
+  point_distances(state,param,&pt,&f1,&p1,&f2,&p2,&f3,&p3);
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
   miScalar scale = dist_scale(dist_measure);
+	miBoolean jagged = *mi_eval_boolean(&param->jagged_gap);
   
   miScalar s = 1.0;
   {
     miScalar gap_size = *mi_eval_scalar(&param->gap_size);
     
-    miVector2d ptX; 
-    ptX.u = pt1.u + mi_noise_2d(pt1.u*1000,pt1.v*1000) * 0.15 * scale;
-    ptX.v = pt1.v + mi_noise_2d(pt1.u*1000 + 100,pt1.v*1000+100) * 0.15 * scale;
+    miVector2d ptX = pt;
+		
+		// jagged edges. useful for broken earth crusts
+		if(jagged) {
+			ptX.u += mi_noise_2d(pt.u*1000,pt.v*1000) * 0.15 * scale;
+			ptX.v += mi_noise_2d(pt.u*1000 + 100,pt.v*1000+100) * 0.15 * scale;
+		}
+		
     miScalar f1X, f2X, f3X;
     miVector2d p1X, p2X, p3X;
     

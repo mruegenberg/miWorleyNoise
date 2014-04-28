@@ -3,6 +3,12 @@ max version "3.10.99"
 
 declare shader
 	color "texture_worleynoise" (
+	  scalar		"u",
+		scalar    "v",
+		
+		# use jagged edges for gap?
+		boolean "jagged_gap", #: default off
+		
 		color	"inner",  #: default 1., 1., 0., 1.
 		color	"outer",  #: default 0., .2, 0., 1.
 		color   "gap",    #: default 0., 0., 0., 0.
