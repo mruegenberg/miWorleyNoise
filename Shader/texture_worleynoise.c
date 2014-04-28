@@ -4,8 +4,7 @@
 
 #include "common.h"
 
-// 9 * PTS_PER_CUBE.
-// in 3D, use 27 instead of 9
+// 3^DIMENSIONS * PTS_PER_CUBE.
 #define CACHE_SIZE 36
 
 // has to fit the .mi file
@@ -27,7 +26,7 @@ typedef struct {
 typedef struct {
   miBoolean cache_initialized;
   miVector2d cacheCube; // the "center" cube of the cache
-  miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
+  miVector2d cacheVals[CACHE_SIZE]; 
 } worley_context;
 
 DLLEXPORT int texture_worleynoise_version(void) {return(2);}
@@ -191,40 +190,40 @@ void update_cache(worley_context *context, miVector2d *cube, miScalar cube_dist)
     currentCube.u = cube->u - cube_dist;
     currentCube.v = cube->v - cube_dist;
     
-    miVector2d *cache = context->cacheVals;
+		miVector2d *cache = context->cacheVals;
 
-    // for the 3*3 cubes around the current cube,
-    // calculate the random points in that cube
-    for(int u=0; u<3; ++u) {
-      currentCube.v = cube->v - cube_dist;
-      for(int v=0; v<3; ++v) {
-	miScalar uSeed = currentCube.u;
-	miScalar vSeed = currentCube.v;
-	miScalar uvIncrement = cube_dist / (PTS_PER_CUBE + 1);
-	for(int k = 0; k < PTS_PER_CUBE; ++k) {
-	  miVector2d pt = currentCube;
+		// for the 3*3 cubes around the current cube,
+		// calculate the random points in that cube
+		for(int u=0; u<3; ++u) {
+			currentCube.v = cube->v - cube_dist;
+			for(int v=0; v<3; ++v) {
+				miScalar uSeed = currentCube.u;
+				miScalar vSeed = currentCube.v;
+				miScalar uvIncrement = cube_dist / (PTS_PER_CUBE + 1);
+				for(int k = 0; k < PTS_PER_CUBE; ++k) {
+					miVector2d pt = currentCube;
 	  
-	  // FIXME: this can be made better
-	  // also, multiplication of seed by 1000 is somewhat arbitrary.
-	  // the main point is that we need multiple random values in [0,1] 
-	  // which are somehow seeded from the current cube with reproducible results
-	  pt.u += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
-	  uSeed += uvIncrement;
-	  pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
-	  vSeed += uvIncrement;
-	  // assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
-	  // assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
+					// FIXME: this can be made better
+					// also, multiplication of seed by 1000 is somewhat arbitrary.
+					// the main point is that we need multiple random values in [0,1] 
+					// which are somehow seeded from the current cube with reproducible results
+					pt.u += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
+					uSeed += uvIncrement;
+					pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
+					vSeed += uvIncrement;
+					// assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
+					// assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
 
-	  cache[(v * 3 + u) * PTS_PER_CUBE + k] = pt;
+					cache[(v * 3 + u) * PTS_PER_CUBE + k] = pt;
+				}
+
+				currentCube.v += cube_dist;
+			}
+			currentCube.u += cube_dist;
+		}
 	}
 
-	currentCube.v += cube_dist;
-      }
-      currentCube.u += cube_dist;
-    }
-  }
-
-  context->cache_initialized = 1;
+	context->cache_initialized = 1;
 }
 
 void point_distances(miState *state,texture_worleynoise_t *param, 
@@ -247,7 +246,7 @@ void point_distances(miState *state,texture_worleynoise_t *param,
   
   miVector2d *cache = context->cacheVals;
   
-  for(int i=0; i < 3 * 3 * PTS_PER_CUBE; ++i) {
+  for(int i=0; i < CACHE_SIZE; ++i) {
     miVector2d p = cache[i];
     miScalar d = distance(dist_measure, pt, &p);
     if(d < *f3) {

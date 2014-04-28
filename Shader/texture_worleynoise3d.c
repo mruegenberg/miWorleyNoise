@@ -4,9 +4,8 @@
 
 #include "common.h"
 
-// 9 * PTS_PER_CUBE.
-// in 3D, use 27 instead of 9
-#define CACHE_SIZE 36
+// 3^DIMENSIONS * PTS_PER_CUBE.
+#define CACHE_SIZE 108
 
 // has to fit the .mi file
 typedef struct {	
@@ -23,9 +22,9 @@ typedef struct {
 
 typedef struct {
   miBoolean cache_initialized;
-  miVector2d cacheCube; // the "center" cube of the cache
-  miVector2d cacheVals[CACHE_SIZE]; // in 3D, use 27 instead of 9
-} worley_context;
+  miVector cacheCube; // the "center" cube of the cache
+  miVector cacheVals[CACHE_SIZE]; 
+} worley_context3;
 
 DLLEXPORT int texture_worleynoise3d_version(void) {return(2);}
 
@@ -46,7 +45,7 @@ DLLEXPORT miBoolean texture_worleynoise3d_exit(
     // note: is is indeed correct to release the contexts during shader instance exit!!!
     // (TODO: explain why)
     int num;
-    worley_context **contexts;
+    worley_context3 **contexts;
     mi_query(miQ_FUNC_TLS_GETALL, state, miNULLTAG, &contexts, &num);
     for(int i=0; i < num; i++) {
       mi_mem_release(contexts[i]);
@@ -63,10 +62,10 @@ DLLEXPORT miBoolean texture_worleynoise3d(
     miState *state,
     texture_worleynoise3d_t *param)
 {
-  worley_context *context;
+  worley_context3 *context;
   mi_query(miQ_FUNC_TLS_GET, state, miNULLTAG, &context);
   if (!context) {
-    context = mi_mem_allocate( sizeof(worley_context) );
+    context = mi_mem_allocate( sizeof(worley_context3) );
     mi_query(miQ_FUNC_TLS_SET, state, miNULLTAG, &context);
     context->cache_initialized = 0;
   }
@@ -93,14 +92,14 @@ DLLEXPORT miBoolean texture_worleynoise3d(
 }
 
 void point_distances3(miState *state,texture_worleynoise3d_t *param, 
-                      miVector2d *pt,
-                      miScalar *f1, miVector2d *p1,
-                      miScalar *f2, miVector2d *p2,
-                      miScalar *f3, miVector2d *p3);
+                      miVector *pt,
+                      miScalar *f1, miVector *p1,
+                      miScalar *f2, miVector *p2,
+                      miScalar *f3, miVector *p3);
 
 miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
   miScalar f1, f2, f3;
-  miVector2d p1, p2, p3;
+  miVector p1, p2, p3;
   
   // ways to get the current point:
   // state->tex_list[0]; // yields good results only in the x and y coordinate
@@ -110,8 +109,7 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
 	// instead, we just take an u and v value explicitly; they would usually be provided by a 2D placement node.
 	
 	// note: getting current values must always be wrapped in mi_eval... calls!
-	miVector2d pt;
-	pt.u = state->point.x; pt.v = state->point.z;
+	miVector pt = state->point;
 	
   point_distances3(state,param,&pt,&f1,&p1,&f2,&p2,&f3,&p3);
   
@@ -124,22 +122,23 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
   {
     miScalar gap_size = *mi_eval_scalar(&param->gap_size);
     
-    miVector2d ptX = pt;
-		
-		// jagged edges. useful for broken earth crusts
-		if(jagged) {
-			ptX.u += mi_noise_2d(pt.u*1000,pt.v*1000) * 0.15 * scale;
-			ptX.v += mi_noise_2d(pt.u*1000 + 100,pt.v*1000+100) * 0.15 * scale;
-		}
+    miVector ptX = pt;
+		// TODO
+		// 
+		// // jagged edges. useful for broken earth crusts
+		// if(jagged) {
+		// 	ptX.u += mi_noise_2d(pt.u*1000,pt.v*1000) * 0.15 * scale;
+		// 	ptX.v += mi_noise_2d(pt.u*1000 + 100,pt.v*1000+100) * 0.15 * scale;
+		// }
 		
     miScalar f1X, f2X, f3X;
-    miVector2d p1X, p2X, p3X;
+    miVector p1X, p2X, p3X;
     
     point_distances3(state,param,&ptX,&f1X,&p1X,&f2X,&p2X,&f3X,&p3X);
      
     // based on code from "Advanced Renderman"
     // this leads to gaps of equal width, in contrast to just simple thresholding of f2 - f1.
-    miScalar scaleFactor = (distance(dist_measure, &p1X, &p2X) * scale) / (f1X + f2X);
+    miScalar scaleFactor = (distance3(dist_measure, &p1X, &p2X) * scale) / (f1X + f2X);
     
     // FIXME: there may be some adjustment needed for distance measures that are not just dist_linear
     if(gap_size * scaleFactor > f2X - f1X) //  on left side
@@ -168,71 +167,79 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
   return s * scaling_function(dist);
 }
 
-miVector2d point_cube3(miVector2d *pt, miScalar cube_dist) {
-  miVector2d cube;
-  cube.u = floorf((pt->u) / cube_dist) * cube_dist;
-  cube.v = floorf((pt->v) / cube_dist) * cube_dist;
+miVector point_cube3(miVector *pt, miScalar cube_dist) {
+  miVector cube;
+  cube.x = floorf((pt->x) / cube_dist) * cube_dist;
+  cube.y = floorf((pt->y) / cube_dist) * cube_dist;
+	cube.z = floorf((pt->z) / cube_dist) * cube_dist;
   return cube;
 }
 
-void update_cache3(worley_context *context, miVector2d *cube, miScalar cube_dist) {
+void update_cache3(worley_context3 *context, miVector *cube, miScalar cube_dist) {
   // in 3d, use mi_vector_dist instead of dist_linear_squared
-  if(context->cache_initialized && dist_linear_squared(&(context->cacheCube), cube) <= FLT_EPSILON * 2) {
+  if(context->cache_initialized && dist_linear_squared3(&(context->cacheCube), cube) <= FLT_EPSILON * 2) {
     return;
   }
   // note: in theory, we could reuse parts of the old cache if the new cube is adjacent to the cache cube
   context->cacheCube = *cube;
   
   {
-    miVector2d currentCube;
-    currentCube.u = cube->u - cube_dist;
-    currentCube.v = cube->v - cube_dist;
+    miVector currentCube;
+    currentCube.x = cube->x - cube_dist;
+    currentCube.y = cube->y - cube_dist;
+    currentCube.y = cube->z - cube_dist;
     
-    miVector2d *cache = context->cacheVals;
+    miVector *cache = context->cacheVals;
 
-    // for the 3*3 cubes around the current cube,
-    // calculate the random points in that cube
-    for(int u=0; u<3; ++u) {
-      currentCube.v = cube->v - cube_dist;
-      for(int v=0; v<3; ++v) {
-	miScalar uSeed = currentCube.u;
-	miScalar vSeed = currentCube.v;
-	miScalar uvIncrement = cube_dist / (PTS_PER_CUBE + 1);
-	for(int k = 0; k < PTS_PER_CUBE; ++k) {
-	  miVector2d pt = currentCube;
+		// for the 3*3 cubes around the current cube,
+		// calculate the random points in that cube
+		for(int x=0; x<3; ++x) {
+			currentCube.y = cube->y - cube_dist;
+			currentCube.z = cube->z - cube_dist;
+			for(int y=0; y<3; ++y) {
+				currentCube.z = cube->z - cube_dist;
+				for(int z=0; z<3; ++z) {
+					miScalar xSeed = currentCube.x;
+					miScalar ySeed = currentCube.y;
+					miScalar zSeed = currentCube.z;
+					miScalar xyzIncrement = cube_dist / (PTS_PER_CUBE + 1);
+					for(int k = 0; k < PTS_PER_CUBE; ++k) {
+						miVector pt = currentCube;
 	  
-	  // FIXME: this can be made better
-	  // also, multiplication of seed by 1000 is somewhat arbitrary.
-	  // the main point is that we need multiple random values in [0,1] 
-	  // which are somehow seeded from the current cube with reproducible results
-	  pt.u += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
-	  uSeed += uvIncrement;
-	  pt.v += mi_unoise_2d(uSeed*1000, vSeed*1000) * cube_dist;
-	  vSeed += uvIncrement;
-	  // assert(pt.u >= currentCube.u && pt.u <= currentCube.u + cube_dist);
-	  // assert(pt.v >= currentCube.v && pt.v <= currentCube.v + cube_dist);
+						miVector seed; 
+						seed.x = xSeed * 1000; seed.y = ySeed * 1000; seed.z = zSeed * 1000;
+						pt.x += mi_unoise_3d(&seed) * cube_dist;
+						xSeed += xyzIncrement;
+						seed.x = xSeed * 1000; 
+						pt.y +=mi_unoise_3d(&seed) * cube_dist;
+						ySeed += xyzIncrement;
+						seed.y = ySeed * 1000; 
+						pt.z = mi_unoise_3d(&seed) * cube_dist;
+						zSeed += xyzIncrement;
+						seed.z = zSeed * 1000;
 
-	  cache[(v * 3 + u) * PTS_PER_CUBE + k] = pt;
+						cache[(z * 3 * 3 + (y * 3 + x)) * PTS_PER_CUBE + k] = pt;
+					}
+					currentCube.z += cube_dist;
+				}
+				currentCube.y += cube_dist;
+			}
+			currentCube.x += cube_dist;
+		}
 	}
-
-	currentCube.v += cube_dist;
-      }
-      currentCube.u += cube_dist;
-    }
-  }
-
-  context->cache_initialized = 1;
+	
+	context->cache_initialized = 1;
 }
 
 void point_distances3(miState *state,texture_worleynoise3d_t *param, 
-                      miVector2d *pt,
-                      miScalar *f1, miVector2d *p1,
-                      miScalar *f2, miVector2d *p2,
-                      miScalar *f3, miVector2d *p3) {  
+                      miVector *pt,
+                      miScalar *f1, miVector *p1,
+                      miScalar *f2, miVector *p2,
+                      miScalar *f3, miVector *p3) {  
   miScalar cube_dist = CUBE_DIST * (*mi_eval_scalar(&param->scale));
-  miVector2d cube = point_cube3(pt,cube_dist);
+  miVector cube = point_cube3(pt,cube_dist);
   
-  worley_context *context;
+  worley_context3 *context;
   mi_query(miQ_FUNC_TLS_GET, state, miNULLTAG, &context);
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
@@ -242,11 +249,11 @@ void point_distances3(miState *state,texture_worleynoise3d_t *param,
 
   update_cache3(context, &cube, cube_dist);
   
-  miVector2d *cache = context->cacheVals;
+  miVector *cache = context->cacheVals;
   
-  for(int i=0; i < 3 * 3 * PTS_PER_CUBE; ++i) {
-    miVector2d p = cache[i];
-    miScalar d = distance(dist_measure, pt, &p);
+  for(int i=0; i < CACHE_SIZE; ++i) { 
+    miVector p = cache[i];
+    miScalar d = distance3(dist_measure, pt, &p);
     if(d < *f3) {
       if(d < *f2) {
         *f3 = *f2; *p3 = *p2;
