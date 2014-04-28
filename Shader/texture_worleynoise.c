@@ -119,7 +119,7 @@ miScalar worleynoise_val(miState *state,texture_worleynoise_t *param) {
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
-  miScalar scale = dist_scale(dist_measure);
+  miScalar scale = dist_scale(dist_measure) * (*mi_eval_scalar(&param->scale));
 	miBoolean jagged = *mi_eval_boolean(&param->jagged_gap);
   
   miScalar s = 1.0;

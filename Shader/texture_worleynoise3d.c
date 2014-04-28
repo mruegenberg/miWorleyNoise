@@ -118,7 +118,7 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
-  miScalar scale = dist_scale(dist_measure);
+  miScalar scale = dist_scale(dist_measure) * (*mi_eval_scalar(&param->scale));
 	miBoolean jagged = *mi_eval_boolean(&param->jagged_gap);
   
   miScalar s = 1.0;
@@ -129,12 +129,13 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
 		
 		// jagged edges. useful for broken earth crusts
 		if(jagged) {
-			miVector seed = pt; mi_vector_mul(&seed,1000);
-			ptX.x += mi_unoise_3d(&seed) * 0.15 * scale;
-			seed.x += 100; seed.y += 50; 
-			ptX.y += mi_unoise_3d(&seed) * 0.15 * scale;
-			seed.y += 50; seed.z += 100;
-			ptX.z += mi_unoise_3d(&seed) * 0.15 * scale;
+			miVector seed = pt;	 mi_vector_mul(&seed,3 / scale);
+			miScalar jaggingX = (mi_unoise_3d(&seed) - 0.5) * scale * 0.2;
+			ptX.x += jaggingX; seed.x += 1000;
+			miScalar jaggingY = (mi_unoise_3d(&seed) - 0.5) * scale * 0.2;
+			ptX.y += jaggingY; seed.y += 1000;
+			miScalar jaggingZ = (mi_unoise_3d(&seed) - 0.5) * scale * 0.2;
+			ptX.z += jaggingZ;
 		}
 		
     miScalar f1X, f2X, f3X;
@@ -170,7 +171,7 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
     }
   }
   
-  return s * scaling_function(dist);
+   return s * scaling_function(dist);
 }
 
 miVector point_cube3(miVector *pt, miScalar cube_dist) {
