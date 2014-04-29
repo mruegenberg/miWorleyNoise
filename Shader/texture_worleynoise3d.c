@@ -17,6 +17,7 @@ typedef struct {
   miInteger       distance_measure;
   miInteger distance_mode;
   miScalar scale;
+	miScalar scaleX;
   miScalar gap_size;
 	
 	miMatrix        matrix;
@@ -118,7 +119,7 @@ miScalar worleynoise3d_val(miState *state,texture_worleynoise3d_t *param) {
   
   miInteger dist_measure = *mi_eval_integer(&param->distance_measure);
   
-  miScalar scale = dist_scale(dist_measure) * (*mi_eval_scalar(&param->scale));
+  miScalar scale = dist_scale(dist_measure) * (*mi_eval_scalar(&param->scale)) * (*mi_eval_scalar(&param->scaleX));
 	miBoolean jagged = *mi_eval_boolean(&param->jagged_gap);
   
   miScalar s = 1.0;
