@@ -1,6 +1,10 @@
 CC = gcc
 CPP = g++
 
+#########################
+# User Settings:
+
+# Uncomment your Maya version here
 #MAYA_DIR = /Applications/Autodesk/maya2011
 #MAYA_DIR = /Applications/Autodesk/maya2012
 #MAYA_DIR = /Applications/Autodesk/maya2013
@@ -13,6 +17,9 @@ MENTALRAY_DIR = $(MAYA_DIR)/../mentalrayForMaya2015
 
 # The mentalray dev dir. Appended to MENTALRAY_DIR
 MENTALRAY_DEV_DIR = $(MENTALRAY_DIR)/devkit/include
+
+# End of user settings.
+#########################
 
 INC = -I$(MENTALRAY_DEV_DIR)
 LIB = 
